@@ -20,6 +20,8 @@ namespace HexConverter {
   std::string toHex(const std::string & plainText);
 
   std::string toChar(const std::string & hexCode);
+
+  std::string toChar2(const std::string & hexCode);
 };
 
 #endif /* HEXCONVERTER_H_ */
