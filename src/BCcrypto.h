@@ -17,13 +17,21 @@ namespace BCcrypto {
 
   const int IV_SIZE = CryptoPP::AES::BLOCKSIZE;
 
-  std::string readIv(const std::string & cipher_text);
+//  void readIv(const char * iv_cipher_text, byte OUT_iv[]);
+//
+//  void removeIv(const char * iv_cipher_text, unsigned int length, char * OUT_cipher_text);
 
-  std::string removeIv(const std::string & cipher_text);
+  void cbcEncodeAes(const byte * plain_text, unsigned int length,
+                    const CryptoPP::SecByteBlock & key, byte iv[], byte * OUT_iv_cipher_text);
 
-  std::string cbcEncodeAes(const std::string & plain_text, const CryptoPP::SecByteBlock & key, byte iv[]);
+  void cbcDecodeAes(const byte * iv_cipher_text, unsigned int length,
+                    const CryptoPP::SecByteBlock & key, byte * OUT_plain_text);
 
-  std::string cbcDecodeAes(const std::string & iv_cipher_text, const std::string & key);
+  void ctrEncodeAes(const byte * plain_text, unsigned int length,
+                    const CryptoPP::SecByteBlock & key, byte iv[], byte * OUT_iv_cipher_text);
+
+  void ctrDecodeAes(const byte * iv_cipher_text, unsigned int length,
+                    const CryptoPP::SecByteBlock & key, byte * OUT_plain_text);
 };
 
 #endif /* DECODER1_H_ */

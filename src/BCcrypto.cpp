@@ -16,39 +16,32 @@
 
 namespace BCcrypto {
 
-  std::string readIv(const std::string& cipher_text) {
-    return cipher_text.substr(0, IV_SIZE);
-  }
-
-  std::string removeIv(const std::string& cipher_text) {
-    return cipher_text.substr(IV_SIZE, cipher_text.size() - IV_SIZE);
-  }
-
-  std::string cbcEncodeAes(const std::string& plain_text, const CryptoPP::SecByteBlock & key, byte iv[]) {
-    char ct_buffer[IV_SIZE + plain_text.size() + 1];
-    memcpy(ct_buffer, iv, IV_SIZE);
+  void cbcEncodeAes(const byte * plain_text, const unsigned int length,
+                    const CryptoPP::SecByteBlock & key, byte iv[], byte * OUT_iv_cipher_text) {
+    memcpy(OUT_iv_cipher_text, iv, IV_SIZE);
     CryptoPP::CBC_Mode<CryptoPP::AES>::Encryption cbcEncryption(key, key.size(), iv);
 
-    cbcEncryption.ProcessData((byte *) (ct_buffer + IV_SIZE), (byte *) plain_text.c_str(), plain_text.size());
-
-    return std::string(ct_buffer, IV_SIZE + plain_text.size());
+    cbcEncryption.ProcessData((OUT_iv_cipher_text + IV_SIZE), plain_text, length);
   }
 
-  std::string actualDecryption(const std::string& cipher_text, const CryptoPP::SecByteBlock& key_block, const std::string& iv) {
-    char pt_buffer[cipher_text.size() + 1];
-    CryptoPP::CBC_Mode<CryptoPP::AES>::Decryption cbcEncryption(key_block, key_block.size(), (byte *) iv.c_str());
-
-    cbcEncryption.ProcessData((byte*) (pt_buffer), (byte*) (cipher_text.c_str()), cipher_text.size());
-
-    return std::string(pt_buffer, cipher_text.size());
+  void cbcDecodeAes(const byte * iv_cipher_text, const unsigned int length,
+                    const CryptoPP::SecByteBlock & key, byte * OUT_plain_text) {
+    CryptoPP::CBC_Mode<CryptoPP::AES>::Decryption cbcEncryption(key, key.size(), iv_cipher_text);
+    cbcEncryption.ProcessData((OUT_plain_text), (iv_cipher_text + IV_SIZE), length - IV_SIZE);
   }
 
-  std::string cbcDecodeAes(const std::string& iv_cipher_text, const std::string & key) {
-    const CryptoPP::SecByteBlock key_block((byte *) key.c_str(), key.size());
-    const std::string iv = readIv(iv_cipher_text);
-    const std::string cipher_text = removeIv(iv_cipher_text);
+  void ctrEncodeAes(const byte * plain_text, const unsigned int length,
+                    const CryptoPP::SecByteBlock & key, byte iv[], byte * OUT_iv_cipher_text) {
+    memcpy(OUT_iv_cipher_text, iv, IV_SIZE);
+    CryptoPP::CTR_Mode<CryptoPP::AES>::Encryption ctrEncryption(key, key.size(), iv);
 
-    return actualDecryption(cipher_text, key_block, iv);
+    ctrEncryption.ProcessData((OUT_iv_cipher_text + IV_SIZE), plain_text, length);
+  }
+
+  void ctrDecodeAes(const byte * iv_cipher_text, const unsigned int length,
+                    const CryptoPP::SecByteBlock & key, byte * OUT_plain_text) {
+    CryptoPP::CTR_Mode<CryptoPP::AES>::Decryption ctrEncryption(key, key.size(), iv_cipher_text);
+    ctrEncryption.ProcessData((OUT_plain_text), (iv_cipher_text + IV_SIZE), length - IV_SIZE);
   }
 
 }

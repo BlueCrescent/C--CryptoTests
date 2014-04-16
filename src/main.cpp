@@ -12,17 +12,65 @@
 //#include "cryptopp/aes.h"
 //#include "cryptopp/filters.h"
 
-#include "cryptopp/osrng.h"
-#include "cryptopp/aes.h"
-#include "cryptopp/modes.h"
-#include "cryptopp/cryptlib.h"
-#include "cryptopp/secblock.h"
-
-#include "cryptopp/hex.h"
+//#include "cryptopp/osrng.h"
+//#include "cryptopp/aes.h"
+//#include "cryptopp/modes.h"
+//#include "cryptopp/cryptlib.h"
+//#include "cryptopp/secblock.h"
+//
+//#include "cryptopp/hex.h"
 
 // Source by berkay @ http://stackoverflow.com/questions/12306956/example-of-aes-using-crypto
 
+#include <string>
+#include <iostream>
+
+#include "HexConverter.h"
+#include "BCcrypto.h"
+
 int main() {
+
+  std::string cbc_k1 = HexConverter::toChar(std::string("140b41b22a29beb4061bda66b6747e14"));
+  std::string cbc_ct1 = HexConverter::toChar(std::string("4ca00ff4c898d61e1edbf1800618fb2828a226d160dad07883d04e008a7897ee2e4b7465d5290d0c0e6c6822236e1daafb94ffe0c5da05d9476be028ad7c1d81"));
+
+  const CryptoPP::SecByteBlock cbc_k1_block((byte *) cbc_k1.c_str(), cbc_k1.size());
+
+//  const char cbc_k1[] = "140b41b22a29beb4061bda66b6747e14";
+//  const char cbc_ct1[] = "4ca00ff4c898d61e1edbf1800618fb2828a226d160dad07883d04e008a7897ee2e4b7465d5290d0c0e6c6822236e1daafb94ffe0c5da05d9476be028ad7c1d81";
+//  const CryptoPP::SecByteBlock cbc_k1_block((byte *) cbc_k1, sizeof(cbc_k1));
+
+  char cbc_pt1[] = "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0";
+
+  BCcrypto::cbcDecodeAes((byte *) cbc_ct1.c_str(), cbc_ct1.size(), cbc_k1_block, (byte *) cbc_pt1);
+
+  std::cout << "Plain text 1: " << cbc_pt1 << std::endl;
+  /////////////////////////////////////////////////////////////////
+  std::string cbc_k2 = HexConverter::toChar(std::string("140b41b22a29beb4061bda66b6747e14"));
+  std::string cbc_ct2 = HexConverter::toChar(std::string("5b68629feb8606f9a6667670b75b38a5b4832d0f26e1ab7da33249de7d4afc48e713ac646ace36e872ad5fb8a512428a6e21364b0c374df45503473c5242a253"));
+  const CryptoPP::SecByteBlock cbc_k2_block((byte *) cbc_k2.c_str(), cbc_k2.size());
+  char cbc_pt2[] = "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0";
+
+  BCcrypto::cbcDecodeAes((byte *) cbc_ct2.c_str(), cbc_ct2.size(), cbc_k2_block, (byte *) cbc_pt2);
+  std::cout << "Plain text 2: " << cbc_pt2 << std::endl;
+  /////////////////////////////////////////////////////////////////
+  std::string ctr_k1 = HexConverter::toChar(std::string("36f18357be4dbd77f050515c73fcf9f2"));
+  std::string ctr_ct1 = HexConverter::toChar(std::string("69dda8455c7dd4254bf353b773304eec0ec7702330098ce7f7520d1cbbb20fc388d1b0adb5054dbd7370849dbf0b88d393f252e764f1f5f7ad97ef79d59ce29f5f51eeca32eabedd9afa9329"));
+  const CryptoPP::SecByteBlock ctr_k1_block((byte *) ctr_k1.c_str(), ctr_k1.size());
+  char ctr_pt1[] = "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0";
+
+  BCcrypto::ctrDecodeAes((byte *) ctr_ct1.c_str(), ctr_ct1.size(), ctr_k1_block, (byte *) ctr_pt1);
+  std::cout << "Plain text 3: " << ctr_pt1 << std::endl;
+  /////////////////////////////////////////////////////////////////
+  std::string ctr_k2 = HexConverter::toChar(std::string("36f18357be4dbd77f050515c73fcf9f2"));
+  std::string ctr_ct2 = HexConverter::toChar(std::string("770b80259ec33beb2561358a9f2dc617e46218c0a53cbeca695ae45faa8952aa0e311bde9d4e01726d3184c34451"));
+  const CryptoPP::SecByteBlock ctr_k2_block((byte *) ctr_k2.c_str(), ctr_k2.size());
+  char ctr_pt2[] = "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0";
+
+  BCcrypto::ctrDecodeAes((byte *) ctr_ct2.c_str(), ctr_ct2.size(), ctr_k2_block, (byte *) ctr_pt2);
+  std::cout << "Plain text 4: " << ctr_pt2 << std::endl;
+
+
+//  std::cout << "Plain text 1: " << HexConverter::toChar2(cbc_pt1) << std::endl;
 
 //  CryptoPP::HexDecoder hexDecoder;
 
