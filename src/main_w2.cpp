@@ -28,7 +28,7 @@
 #include "HexConverter.h"
 #include "BCcrypto.h"
 
-int main() {
+int main_w2() {
 
   std::string cbc_k1 = HexConverter::toChar(std::string("140b41b22a29beb4061bda66b6747e14"));
   std::string cbc_ct1 = HexConverter::toChar(std::string("4ca00ff4c898d61e1edbf1800618fb2828a226d160dad07883d04e008a7897ee2e4b7465d5290d0c0e6c6822236e1daafb94ffe0c5da05d9476be028ad7c1d81"));

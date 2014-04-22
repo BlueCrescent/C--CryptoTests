@@ -15,11 +15,15 @@
 
 #include <cstdio>
 
+#include <cstdlib>
+
 namespace HexConverter {
 
   std::string toHex(const std::string & plainText) {
     std::stringstream hexCode("");
-    std::for_each(plainText.begin(), plainText.end(), [&](char c){hexCode << std::hex << (int) c;});
+    char tmp_mem[16];
+//    std::for_each(plainText.begin(), plainText.end(), [&](char c){hexCode << std::hex << (unsigned int) c;});
+    std::for_each(plainText.begin(), plainText.end(), [&](char c){sprintf(tmp_mem, "%02x", (unsigned char) c); hexCode << tmp_mem;});
     return hexCode.str();
   }
 
