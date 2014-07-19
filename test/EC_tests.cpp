@@ -5,9 +5,11 @@
  *      Author: timm
  */
 
+#include "HexConverter.h"
+
 #include "gtest/gtest.h"
 
-//#include <cryptopp/asn.h>
+#include <cryptopp/asn.h>
 //#include <cryptopp/cryptlib.h>
 //#include <cryptopp/ec2n.h>
 #include <cryptopp/eccrypto.h>
@@ -25,45 +27,95 @@
 #include <string>
 #include <vector>
 
+//#define HASH_FUNC CryptoPP::SHA1
+#define HASH_FUNC CryptoPP::SHA512
+#define CURVE_FIELD CryptoPP::ECP // prime field
+//#define CURVE_FIELD CryptoPP::EC2N // binary field
+//#define ASN1_CURVE_ID CryptoPP::ASN1::secp160r1()
+#define ASN1_CURVE_ID CryptoPP::ASN1::secp521r1()
 
-TEST(PlayingWithECs, EC_DSA) {
-//  CryptoPP::ECDSA<CryptoPP::EC2N, CryptoPP::SHA1>::Signer signer;
-//  CryptoPP::ECDSA<CryptoPP::EC2N, CryptoPP::SHA1>::Verifier verifier;
+template <unsigned int value>
+struct UIntToOID {
+  CryptoPP::OID getOID() const {
+    switch (value) {
+    case 0:
+      return CryptoPP::ASN1::secp160r1();
+    case 1:
+      return CryptoPP::ASN1::secp160k1();
+    case 2:
+      return CryptoPP::ASN1::secp256k1();  // !!!
+    case 3:
+      return CryptoPP::ASN1::secp128r1();
+    case 4:
+      return CryptoPP::ASN1::secp128r2();
+    case 5:
+      return CryptoPP::ASN1::secp160r2();
+    case 6:
+      return CryptoPP::ASN1::secp192k1();
+    case 7:
+      return CryptoPP::ASN1::secp224k1();
+    case 8:
+      return CryptoPP::ASN1::secp224r1();
+    case 9:
+      return CryptoPP::ASN1::secp384r1();
+    case 10:
+      return CryptoPP::ASN1::secp521r1();
+    }
+  }
 
+  int getNum() const {
+    return value;
+  }
+};
+
+template<class CURVE_TYPE>
+class PlayingWithECs : public ::testing::Test {
+public:
+//  CURVE_TYPE asn1_curve_decider;
+};
+
+typedef ::testing::Types<UIntToOID<0>, UIntToOID<1>, UIntToOID<2>, UIntToOID<3>, UIntToOID<4>, UIntToOID<5>,
+                         UIntToOID<6>, UIntToOID<7>, UIntToOID<8>, UIntToOID<9>, UIntToOID<10> > OIDTypes;
+TYPED_TEST_CASE(PlayingWithECs, OIDTypes);
+
+TYPED_TEST(PlayingWithECs, EC_DSA) {
+  TypeParam asn1_curve_decider;
+  std::cerr << std::endl << "RUNNING TEST " << asn1_curve_decider.getNum() << ":" << std::endl;
   CryptoPP::AutoSeededRandomPool prng;
-  CryptoPP::ECDSA<CryptoPP::ECP, CryptoPP::SHA1>::PrivateKey privateKey;
+  CryptoPP::ECDSA<CURVE_FIELD, HASH_FUNC>::PrivateKey privateKey;
 
-  privateKey.Initialize( prng, CryptoPP::ASN1::secp160r1() );
+  // Setup private key.
+  privateKey.Initialize( prng, asn1_curve_decider.getOID() );
   const bool isValidKey = privateKey.Validate( prng, 3 );
   if (not isValidKey)
     FAIL();
 
-  CryptoPP::ECDSA<CryptoPP::ECP, CryptoPP::SHA1>::Signer signer(privateKey);
-
+  // Setup signer.
+  CryptoPP::ECDSA<CURVE_FIELD, HASH_FUNC>::Signer signer(privateKey);
   const bool isValidSignerKey = signer.AccessKey().Validate( prng, 3 );
   if (not isValidSignerKey)
     FAIL();
 
-  CryptoPP::ECDSA<CryptoPP::ECP, CryptoPP::SHA1>::PublicKey publicKey;
+  // Get public key.
+  CryptoPP::ECDSA<CURVE_FIELD, HASH_FUNC>::PublicKey publicKey;
 
   privateKey.MakePublicKey( publicKey );
-
   const bool isValidPubKey = publicKey.Validate( prng, 3 );
   if (not isValidPubKey)
     FAIL();
 
+  // Use crypto++ serialization for public key.
   CryptoPP::MessageQueue queue;
 
   publicKey.Save(queue);
 
-  std::vector<byte> out(214, 0);
+  std::vector<byte> out(queue.MaxRetrievable(), 0);
 
   std::cerr << "Num bytes: " << queue.MaxRetrievable() << std::endl;
 
-  queue.Get(&*(out.begin()), 214);
+  queue.Get(&*(out.begin()), queue.MaxRetrievable());
 
-  if (queue.MaxRetrievable() > 0)
-    FAIL();
+  ASSERT_EQ(queue.MaxRetrievable(), 0);
 
   for (byte b: out) {
     fprintf(stderr, "%02hhx.", static_cast<unsigned int>(b));
@@ -73,7 +125,7 @@ TEST(PlayingWithECs, EC_DSA) {
   CryptoPP::MessageQueue queue2;
   std::cerr << std::endl << "Num bytes (empty queue): " << queue2.MaxRetrievable() << std::endl;
 
-  CryptoPP::ECDSA<CryptoPP::ECP, CryptoPP::SHA1>::PublicKey::Element publicPoint = publicKey.GetPublicElement();
+  CryptoPP::ECDSA<CURVE_FIELD, HASH_FUNC>::PublicKey::Element publicPoint = publicKey.GetPublicElement();
 
   std::cerr << "Min x encode length: " << publicPoint.x.MinEncodedSize() << std::endl;
   std::cerr << "Min y encode length: " << publicPoint.y.MinEncodedSize() << std::endl;
@@ -88,27 +140,30 @@ TEST(PlayingWithECs, EC_DSA) {
   CryptoPP::Integer x(&*(pointEncode.begin()), 20);
   CryptoPP::Integer y(&(*(pointEncode.begin() + 20)), 20);
 
-  CryptoPP::ECPPoint newPoint(x, y);
+  CURVE_FIELD::Point newPoint(x, y);
 
-  CryptoPP::ECDSA<CryptoPP::ECP, CryptoPP::SHA1>::PublicKey newPublicKey;
-  newPublicKey.Initialize(CryptoPP::ASN1::secp160r1(), newPoint);
+  CryptoPP::ECDSA<CURVE_FIELD, HASH_FUNC>::PublicKey newPublicKey;
+  newPublicKey.Initialize(asn1_curve_decider.getOID(), newPoint);
 
   std::string message = "Yoda said, Do or do not. There is no try.";
   std::string signature;
 
   CryptoPP::StringSource s( message, true /*pump all*/,
       new CryptoPP::SignerFilter( prng,
-          CryptoPP::ECDSA<CryptoPP::ECP,CryptoPP::SHA1>::Signer( privateKey ),
+          CryptoPP::ECDSA<CURVE_FIELD, HASH_FUNC>::Signer( privateKey ),
           new CryptoPP::StringSink( signature )
       ) // SignerFilter
   ); // StringSource
+
+  std::cerr << std::endl << "Signature size: " << signature.size() << std::endl;
+  std::cerr << "Signature: " << HexConverter::toHex(signature) << std::endl;
 
   // Result of the verification process
   bool verified = false;
 
   CryptoPP::StringSource ss( signature + message, true /*pump all*/,
       new CryptoPP::SignatureVerificationFilter(
-          CryptoPP::ECDSA<CryptoPP::ECP,CryptoPP::SHA1>::Verifier(newPublicKey),
+          CryptoPP::ECDSA<CURVE_FIELD, HASH_FUNC>::Verifier(newPublicKey),
           new CryptoPP::ArraySink( (byte*)&verified, sizeof(verified) )
       ) // SignatureVerificationFilter
   );
@@ -121,7 +176,7 @@ TEST(PlayingWithECs, EC_DSA) {
 
   CryptoPP::StringSource ssF( signatureFalse + message, true /*pump all*/,
       new CryptoPP::SignatureVerificationFilter(
-          CryptoPP::ECDSA<CryptoPP::ECP,CryptoPP::SHA1>::Verifier(newPublicKey),
+          CryptoPP::ECDSA<CURVE_FIELD,HASH_FUNC>::Verifier(newPublicKey),
           new CryptoPP::ArraySink( (byte*)&verified, sizeof(verified) )
       ) // SignatureVerificationFilter
   );
