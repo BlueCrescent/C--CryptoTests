@@ -17,7 +17,7 @@ int main(int argc, const char * args[]) {
     return 1;
   }
 
-  const char filename[] = args[1];
+  const char * filename = args[1];
 
   std::basic_ifstream<char, std::char_traits<char>> input_file;
   input_file.exceptions(std::ofstream::failbit | std::ofstream::badbit);
